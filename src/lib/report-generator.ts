@@ -187,43 +187,6 @@ function buildReportOutline(profile: DatasetProfile, sections: ReportSection[]) 
     });
   }
 
-  if (included.has("sec-8")) {
-    const notes = profile.aiAnalystNotes;
-    const body: { kind: "paragraph" | "subheading" | "bullet"; text: string }[] =
-      !notes || notes.length === 0
-        ? [
-            {
-              kind: "paragraph",
-              text: "No AI Analyst Notes were generated for this dataset. Visit the Insights page to generate them, then export again to include them here.",
-            },
-          ]
-        : notes.flatMap((note) => [
-            { kind: "subheading" as const, text: note.title },
-            { kind: "paragraph" as const, text: note.body },
-          ]);
-    blocks.push({ id: "sec-8", heading: "AI Analyst Notes", body });
-  }
-
-  if (included.has("sec-9")) {
-    const recommendations = profile.decisionRecommendations;
-    const body: { kind: "paragraph" | "subheading" | "bullet"; text: string }[] =
-      !recommendations || recommendations.length === 0
-        ? [
-            {
-              kind: "paragraph",
-              text: "No decision-support recommendations were generated for this dataset. Visit the Insights page to generate them, then export again to include them here.",
-            },
-          ]
-        : recommendations.flatMap((rec) => [
-            { kind: "subheading" as const, text: `${rec.title} — ${rec.priority} priority` },
-            { kind: "paragraph" as const, text: rec.body },
-            ...(rec.basedOn.length > 0
-              ? [{ kind: "bullet" as const, text: `Based on: ${rec.basedOn.join(", ")}` }]
-              : []),
-          ]);
-    blocks.push({ id: "sec-9", heading: "Decision-Support Recommendations", body });
-  }
-
   return blocks;
 }
 

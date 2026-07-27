@@ -2,8 +2,7 @@ import type { ReportSection } from "@/lib/types";
 
 // Default set of sections a user can toggle on/off before exporting a
 // report. This is UI configuration, not sample data — update this list
-// as new report sections (e.g. Data Quality Score, Decision-Support
-// Recommendations) are added to the pipeline.
+// as new report sections are added to the pipeline.
 export const reportSections: ReportSection[] = [
   { id: "sec-1", title: "Executive Summary", description: "High-level overview of the dataset and key takeaways.", included: true },
   { id: "sec-2", title: "Dataset Overview", description: "Rows, columns, types, memory usage and file metadata.", included: true },
@@ -12,6 +11,4 @@ export const reportSections: ReportSection[] = [
   { id: "sec-5", title: "AI-Generated Insights", description: "Key findings, patterns, risks, and opportunities.", included: true },
   { id: "sec-6", title: "Question & Answer Log", description: "Your conversation history with DataPilot's AI.", included: false },
   { id: "sec-7", title: "Appendix: Full Column Reference", description: "Data dictionary listing every column and its type.", included: false },
-  { id: "sec-8", title: "AI Analyst Notes", description: "Gemini's analyst-style notes from the Insights page, generated from the computed statistics.", included: true },
-  { id: "sec-9", title: "Decision-Support Recommendations", description: "Actionable next steps, accounting for which cleaning fixes you approved or rejected.", included: true },
 ];

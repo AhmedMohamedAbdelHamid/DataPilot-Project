@@ -40,6 +40,39 @@ interface GeminiCallOptions {
   maxOutputTokens?: number;
 }
 
+const MAX_RETRY_WAIT_MS = 15_000; // don't block the request for longer than this
+const MAX_429_RETRIES = 2;
+
+/**
+ * Parses the retry delay Gemini suggests for a 429 response. The API
+ * returns this either as a `RetryInfo` detail (e.g. retryDelay: "39s") or
+ * mentions it in the plain-text error message ("Please retry in 39.58s").
+ * Falls back to a fixed backoff if neither is present.
+ */
+function parseRetryDelayMs(errBody: unknown, message: string, attempt: number): number {
+  const details = (errBody as { error?: { details?: unknown[] } })?.error?.details;
+  if (Array.isArray(details)) {
+    for (const d of details) {
+      const retryDelay = (d as { retryDelay?: string })?.retryDelay;
+      if (typeof retryDelay === "string") {
+        const seconds = parseFloat(retryDelay.replace(/s$/, ""));
+        if (Number.isFinite(seconds)) return Math.min(seconds * 1000, MAX_RETRY_WAIT_MS);
+      }
+    }
+  }
+  const match = message.match(/retry in ([\d.]+)s/i);
+  if (match) {
+    const seconds = parseFloat(match[1]);
+    if (Number.isFinite(seconds)) return Math.min(seconds * 1000, MAX_RETRY_WAIT_MS);
+  }
+  // No hint from the API — fixed exponential backoff (1s, 2s, ...).
+  return Math.min(1000 * 2 ** attempt, MAX_RETRY_WAIT_MS);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function callGemini({ prompt, temperature = 0.4, jsonResponse = false, maxOutputTokens = 1024 }: GeminiCallOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -47,65 +80,81 @@ async function callGemini({ prompt, temperature = 0.4, jsonResponse = false, max
   }
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  for (let attempt = 0; ; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  try {
-    const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature,
-          maxOutputTokens,
-          ...(jsonResponse ? { responseMimeType: "application/json" } : {}),
+    try {
+      const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      }),
-      signal: controller.signal,
-    });
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens,
+            ...(jsonResponse ? { responseMimeType: "application/json" } : {}),
+          },
+        }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      let message = `Gemini API returned ${response.status}`;
-      try {
-        const errBody = await response.json();
-        if (errBody?.error?.message) message = errBody.error.message;
-      } catch {
-        // response body wasn't JSON — keep the status-based message
+      if (!response.ok) {
+        let message = `Gemini API returned ${response.status}`;
+        let errBody: unknown;
+        try {
+          errBody = await response.json();
+          const parsedMessage = (errBody as { error?: { message?: string } })?.error?.message;
+          if (parsedMessage) message = parsedMessage;
+        } catch {
+          // response body wasn't JSON — keep the status-based message
+        }
+
+        if (response.status === 429 && attempt < MAX_429_RETRIES) {
+          const waitMs = parseRetryDelayMs(errBody, message, attempt);
+          console.error(`[gemini] request to model "${model}" rate-limited (429) — retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_429_RETRIES})`);
+          await sleep(waitMs);
+          continue; // retry the loop
+        }
+
+        // Log server-side so the real cause (bad model name, invalid key,
+        // quota, etc.) is visible in the dev terminal, not just buried in
+        // the JSON error body the client sees.
+        console.error(`[gemini] request to model "${model}" failed (${response.status}): ${message}`);
+        throw new GeminiError(
+          response.status === 429
+            ? "Gemini's rate limit was hit — please wait a moment and try again."
+            : message
+        );
       }
-      // Log server-side so the real cause (bad model name, invalid key,
-      // quota, etc.) is visible in the dev terminal, not just buried in the
-      // JSON error body the client sees.
-      console.error(`[gemini] request to model "${model}" failed (${response.status}): ${message}`);
-      throw new GeminiError(message);
-    }
 
-    const data = await response.json();
-    let text = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
-    if (!text.trim()) {
-      throw new GeminiError("Gemini returned an empty response.");
+      const data = await response.json();
+      let text = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+      if (!text.trim()) {
+        throw new GeminiError("Gemini returned an empty response.");
+      }
+      if (jsonResponse) {
+        // Some models still wrap JSON-mode output in ```json ... ``` fences
+        // even with responseMimeType set — strip them before the caller
+        // attempts JSON.parse().
+        text = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+      }
+      return text;
+    } catch (err) {
+      if (err instanceof GeminiError) throw err;
+      if (err instanceof Error && err.name === "AbortError") {
+        console.error(`[gemini] request to model "${model}" timed out after ${REQUEST_TIMEOUT_MS}ms`);
+        throw new GeminiError("Gemini request timed out.");
+      }
+      console.error(`[gemini] request to model "${model}" threw:`, err);
+      throw new GeminiError(err instanceof Error ? err.message : "Unknown Gemini error.");
+    } finally {
+      clearTimeout(timeout);
     }
-    if (jsonResponse) {
-      // Some models still wrap JSON-mode output in ```json ... ``` fences
-      // even with responseMimeType set — strip them before the caller
-      // attempts JSON.parse().
-      text = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    }
-    return text;
-  } catch (err) {
-    if (err instanceof GeminiError) throw err;
-    if (err instanceof Error && err.name === "AbortError") {
-      console.error(`[gemini] request to model "${model}" timed out after ${REQUEST_TIMEOUT_MS}ms`);
-      throw new GeminiError("Gemini request timed out.");
-    }
-    console.error(`[gemini] request to model "${model}" threw:`, err);
-    throw new GeminiError(err instanceof Error ? err.message : "Unknown Gemini error.");
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
