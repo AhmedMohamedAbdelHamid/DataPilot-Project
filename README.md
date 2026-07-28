@@ -297,8 +297,3 @@ never reach the client — it lives only in server route handlers.
    `docs/release-checklist.md`.~~ Done.
 9. ~~Vercel deploy + env vars (steps documented in
    `docs/release-checklist.md`).~~ Done.
-
-## Out of scope (per training handbook)
-
-Executing arbitrary uploaded code, processing very large/private datasets,
-letting AI invent statistics.
