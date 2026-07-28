@@ -244,10 +244,6 @@ single AI provider, no swappable storage — not an oversight. See
 All of the above pass `tsc --noEmit` and `eslint` clean across the entire
 `src` tree as of this revision.
 
-### Not started yet
-- Nothing outstanding from the original build order — see "Suggested
-  build order" below, all steps are now checked off.
-
 ## Target pipeline
 
 ```
@@ -295,5 +291,8 @@ never reach the client — it lives only in server route handlers.
 7. ~~Extend export to cover the new sections.~~ Done.
 8. ~~`docs/architecture.md`, `docs/api-contracts.md`,
    `docs/release-checklist.md`.~~ Done.
-9. ~~Vercel deploy + env vars (steps documented in
-   `docs/release-checklist.md`).~~ Done.
+
+## Out of scope (per course handbook)
+
+Executing arbitrary uploaded code, processing very large/private datasets,
+letting AI invent statistics.
