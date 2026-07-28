@@ -1,6 +1,6 @@
 # DataPilot — Dataset Analysis & Decision Support Studio
 
-Team 07, "AI in Applications" course project. A data-insight studio: user uploads
+Team 07, "AI in Applications" training project. A data-insight studio: user uploads
 a CSV → deterministic code profiles it (schema, missing values, duplicates,
 outliers) → AI explains the findings and answers questions → chart rules
 recommend visualizations → user exports a decision brief.
@@ -9,16 +9,88 @@ This file tracks what's actually been built vs. what's still planned, so
 anyone (human or AI) picking this project back up knows exactly where it
 stands. Update it as work lands — don't let it go stale.
 
+## Links
+
+- **Live app:** https://data-pilot-project.vercel.app/
+- **Sample dataset (Kaggle):** [2026 World Cup Player Statistics](https://www.kaggle.com/datasets/troubador/2026-world-cup-player-statistics) — used for manual end-to-end testing.
+
+## Problem & Solution
+
+**The problem:** Most people with a CSV of data — sales numbers, survey
+results, sports stats — aren't data analysts. They can open the file, but
+they don't know if it's clean, what's actually notable in it, which chart
+best represents a given question, or how to turn any of that into something
+they could hand to someone else (a report, a set of decisions). Manually
+profiling a dataset (missing values, duplicates, outliers, correlations)
+and then writing up findings takes real expertise and time most users
+don't have.
+
+**How DataPilot fixes it:**
+1. **Deterministic profiling on upload** — the moment a CSV/TSV lands,
+   `buildDatasetProfile()` computes schema, missing values, duplicate
+   rows, IQR-based outliers, correlations, and a 0–100 data quality
+   score — instantly, with no AI involved, so the numbers are always
+   trustworthy and reproducible.
+2. **AI explains, never calculates** — Gemini is layered on top purely to
+   translate those computed facts into plain-language analyst notes and
+   answers to open questions, under a hard "never invent a number"
+   contract (`GROUNDING_DATA` + system instruction in `src/lib/gemini.ts`).
+3. **Guided cleanup, not auto-editing** — data-quality issues are surfaced
+   as proposals the user approves or rejects; nothing is silently changed.
+4. **Chart recommendations** — rule-based suggestions point the user to
+   the visualization that fits their data, instead of guessing.
+5. **One-click export** — the whole analysis (score, findings, charts,
+   AI recommendations) becomes a PDF or DOCX decision brief, so the
+   output is something shareable, not just an in-app view.
+
+In short: the site turns "I have a CSV and don't know what to do with it"
+into a guided, explainable path from raw data → verified findings →
+a document someone can act on — without requiring the user to know any
+statistics themselves.
+
+## Team meeting notes
+
+- Discussed the problem statement and clarified the project's objectives
+  and expected outcomes.
+- Reviewed the project structure, including the overall pipeline and
+  system architecture.
+- Discussed the API response schema to ensure consistency and ease of
+  integration between components.
+- Agreed to use Supabase for authentication and Vercel for application
+  deployment.
+- Planned future enhancements, including:
+  1. Implementing data quality checks to validate uploaded or processed data.
+  2. Adding AI-powered smart solutions to automatically detect and fix
+     data quality issues.
+
+## Architecture style
+
+**Layered / flat** — Route Handlers under `src/app/api/datapilot/` call
+`src/lib/csv-profiler.ts` and `src/lib/gemini.ts` directly by name. There is
+no ports/adapters (hexagonal) layer: no interfaces abstracting the AI
+provider or storage, and no composition root wiring implementations to
+abstractions. That's an intentional trade-off for this project's scope —
+single AI provider, no swappable storage — not an oversight. See
+`docs/architecture.md` for the full request-flow breakdown.
+
+### Diagrams
+
+**System architecture:**
+![Data Project Architecture](docs/images/Data%20Project%20Architecture.png)
+
+**Data pipeline:**
+![Pipeline](docs/images/Pipeline.jpeg)
+
 ## Team
 
 | Role | Name |
 |---|---|
-| Integration Lead / Solution Architect | Ahmed Abdel Hamid |
+| Integration Lead / Solution Architect — **Team Leader** | Ahmed Abdel Hamid |
 | AI & Backend Engineer | Youssef Elfeshawy |
 | Product UI & Workflow Engineer | Omar Metwally |
 | Knowledge, Tools & Quality Engineer | Ahmad Essam |
 
-## Status: frontend, auth, deterministic profiling, data-quality score, cleaning-proposal review, the Gemini explanation/Q&A layer, decision-support recommendation generation, full report export, and course-required docs exist — Vercel deployment is next
+## Status: frontend, auth, deterministic profiling, data-quality score, cleaning-proposal review, the Gemini explanation/Q&A layer, decision-support recommendation generation, full report export, training-required docs, and Vercel deployment are all done
 
 ### Done
 - **Frontend UI** (Next.js App Router, TypeScript, Tailwind, shadcn/ui,
@@ -149,7 +221,7 @@ stands. Update it as work lands — don't let it go stale.
   in `report-generator.ts` renders them into both PDF and DOCX, falling
   back to a "visit Insights to generate them first" message if the user
   exports before either has been generated.
-- **Course-required docs** — `docs/architecture.md` (system overview,
+- **Training-required docs** — `docs/architecture.md` (system overview,
   request flow, the grounding contract, deterministic-vs-AI insights,
   client-side state/persistence, data storage, auth, report export,
   tech stack), `docs/api-contracts.md` (every `/api/datapilot/*` route:
@@ -162,13 +234,16 @@ stands. Update it as work lands — don't let it go stale.
   documented in the checklist since it fails in network-restricted
   build environments.
 
+- **Vercel deployment** — live, with environment variables set
+  (`GEMINI_API_KEY` alongside the Supabase vars) per
+  `docs/release-checklist.md`.
+
 All of the above pass `tsc --noEmit` and `eslint` clean across the entire
 `src` tree as of this revision.
 
 ### Not started yet
-- Vercel deployment + environment variable setup (now including
-  `GEMINI_API_KEY` alongside the Supabase vars) — steps are documented in
-  `docs/release-checklist.md`, just not yet executed.
+- Nothing outstanding from the original build order — see "Suggested
+  build order" below, all steps are now checked off.
 
 ## Target pipeline
 
@@ -217,10 +292,10 @@ never reach the client — it lives only in server route handlers.
 7. ~~Extend export to cover the new sections.~~ Done.
 8. ~~`docs/architecture.md`, `docs/api-contracts.md`,
    `docs/release-checklist.md`.~~ Done.
-9. Vercel deploy + env vars (steps documented in
-   `docs/release-checklist.md`).
+9. ~~Vercel deploy + env vars (steps documented in
+   `docs/release-checklist.md`).~~ Done.
 
-## Out of scope (per course handbook)
+## Out of scope (per training handbook)
 
 Executing arbitrary uploaded code, processing very large/private datasets,
 letting AI invent statistics.
