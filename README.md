@@ -1,13 +1,16 @@
 # DataPilot — Dataset Analysis & Decision Support Studio
 
-Team 07, "AI in Applications" training project. A data-insight studio: user uploads
-a CSV → deterministic code profiles it (schema, missing values, duplicates,
-outliers) → AI explains the findings and answers questions → chart rules
-recommend visualizations → user exports a decision brief.
+**DataPilot** is Team 07's "AI in Applications" training project — a
+data-insight studio that turns a raw CSV into a decision-ready report.
+Upload a dataset and the pipeline takes it from there: deterministic code
+profiles it (schema, missing values, duplicates, outliers), AI explains
+the findings in plain language and answers follow-up questions, rule-based
+logic recommends the right charts, and the user exports the whole thing
+as a polished decision brief — no data-science background required.
 
-This file tracks what's actually been built vs. what's still planned, so
-anyone (human or AI) picking this project back up knows exactly where it
-stands. Update it as work lands — don't let it go stale.
+This README tracks what's actually been built vs. what's still planned,
+so anyone (human or AI) picking this project back up knows exactly where
+it stands. Update it as work lands — don't let it go stale.
 
 ## Links
 
