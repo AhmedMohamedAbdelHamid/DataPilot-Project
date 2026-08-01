@@ -1,0 +1,33 @@
+requirement_id,requirement,source,owner,expected_evidence,actual_evidence,result,blocker,recommendation
+R-01,Project and role documented accurately,S1 handbook,Knowledge,This deliverable,Delivered,Specification met,None,Accept
+R-02,Three approved sources recorded,S1 §6,Knowledge,Source register,Delivered,Specification met,None,Accept
+R-03,Candidates separated from approved,S1 §5,Knowledge,Source register,Delivered,Specification met,None,Accept
+R-04,profile_dataset contracts documented,S1 §8,Knowledge,Backend handoff,Delivered,Specification met,None,Accept
+R-05,Deterministic vs AI boundary defined,S1 §8.17,Knowledge,Guardrails,Delivered,Specification met,None,Accept
+R-06,25+ edge cases,S1 §10,Knowledge,42-case register,Delivered,Specification met,None,Accept
+R-07,Not-found behaviour specified,S1 §12,Knowledge,not_found_rules.json,Delivered,Specification met,None,Accept
+R-08,Error codes specified,S1 §11,Knowledge,error_messages.json,Delivered,Specification met,None,Accept
+R-09,15+ interpretation guardrails,S1 §13,Knowledge,20 guardrails,Delivered,Specification met,None,Accept
+R-10,Injection risks identified,S1 §14,Knowledge,12 attacks + 2 payloads,Delivered,Specification met,None,Accept
+R-11,Known limitations listed,S1 §21,Knowledge,22-item register,Delivered,Specification met,None,Accept
+R-12,Decisions assigned to owners,S1 §20,Knowledge,34-decision register (D-01..D-34),Delivered,Specification met,None,Accept
+R-13,3 benchmark datasets with expected outputs,S2,Knowledge,Datasets + expected profiles,Delivered,Specification met,None,Accept
+R-14,Expected values derived exactly,S2,Knowledge,Reference generator,Delivered,Specification met,None,Accept
+R-15,5 core tests defined,S2,Knowledge,five_core_test_*,Delivered,Specification met,None,Accept
+R-16,Bounded knowledge set,S3,Knowledge,10 JSON files,Delivered,Specification met,None,Accept
+R-17,Traceability model,S3,Knowledge,traceability_schema.json,Delivered,Specification met,None,Accept
+R-18,Deterministic output matches expected,S3-4,Knowledge+Backend,Diff report,Executed: backend profiler run on all 3 fixtures; 339-field comparison vs authoritative expected = 336 Pass / 0 Fail / 3 label-only divergences,Pass,None,Accept — deterministic core verified
+R-19,10-case evaluation executed,S4,Knowledge,Completed matrix,"Backend test suite executed 9/9 (parser, 3 benchmark profiles, stub+real routes). Full 10-case eval matrix (injection/malformed/not-found scenarios) not yet executed",Partial,Full scenario matrix pending,Execute remaining evaluation scenarios
+R-20,Injection tests executed,S4,Knowledge+Backend,Injection log,"Injection guardrails implemented in ai.ts (untrusted-cell handling, numeric-rejection); behavioural injection tests not executed (need live AI keys)",Not tested,Live AI provider keys required,Execute with provider keys
+R-21,Formula neutralization verified,S4,Knowledge+Backend,Neutralization evidence,Formula-injection handling present in code; display/export neutralization not executed in a UI/export run,Implemented,UI/export execution required,Verify in UI + export
+R-22,No AI number absent from profile,S4,Knowledge,AI review sheet,ai.ts rejects AI output introducing a number absent from the profile (static post-check); not exercised with a live model,Implemented,Live AI run required,Execute with provider keys
+R-23,Source access dates verified,S3,Knowledge,Verified register,Pending execution,Pending execution,Verification not performed,Verify at S3 gate; never fabricate
+R-24,Candidate sources approved/removed,S3,Integration Lead,Signed register,Pending execution,Pending execution,Awaiting Lead,Lead to approve
+R-25,Decisions D-01..D-34 approved,S2-3,Integration Lead,Signed register,34 decisions (D-01..D-34) recorded; all approval_status=Proposed,Proposed,Awaiting Integration Lead,Lead to approve
+R-26,Clean-dataset success fixture,S4,Knowledge,Clean fixture + run,Pending execution,Pending execution,Fixture not built,Add in follow-up (KL-14)
+R-27,Partial-status behaviour,S3,Backend,Partial-path evidence,Not applicable,Not applicable,Implementation undecided,Confirm with backend (KL-20)
+R-28,Backend installs and tests green,Backend patch,Youssef/Ahmad,npm install + npm test,Executed: npm install 682 pkgs; npm test 9/9 pass,Pass,None,Accept
+R-29,Backend builds clean,Backend patch,Youssef/Ahmad,npm run build,Executed: build succeeds after 1 type fix (divergence D-2),Pass,Build needs D-2 fix committed,Accept once D-2 committed
+R-30,Backend error codes match spec,§11,Ahmad/Youssef,All 11 codes present,Verified: all 11 codes present in errors handling,Pass,None,Accept
+R-31,Backend duplicate rule matches D-09,D-09,Ahmad/Youssef,trim-surrounding-whitespace full record,Verified: profiler line 269 matches tightened D-09,Pass,None,Accept
+R-32,UI benchmark workflow (named items),Manual,Ahmad,Manual UI test statement,Ahmad Essam manual UI test confirmed named items,Pass,Withheld UI items need separate evidence,Accept named items only
